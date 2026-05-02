@@ -1,15 +1,78 @@
-from fastapi import FastAPI, HTTPException, Depends
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine   
+from pymongo import AsyncMongoClient
+from datetime import datetime, timezone
+import os
+import asyncio
 import models, schemas, crud
 import uuid
 
-
-
+''' || 1. POSTGRESQL SETUP ||'''
 models.Base.metadata.create_all(bind=engine)
-app = FastAPI()
-# testing if connection with database works
 
+''' || 2. MONGODB SETUP ||'''
+@asynccontextmanager
+async def get_mongo_client(app: FastAPI):
+    MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
+
+    app.mongodb_client = AsyncMongoClient(MONGO_URL)
+    app.mongodb = app.mongodb_client["inventory_logs"]
+    print("Connected to MongoDB")
+
+    yield
+
+    app.mongodb_client.close()
+    print("MongoDB connection closed")
+
+app = FastAPI(lifespan=get_mongo_client)
+
+''' || 3. CORS MIDDLEWARE || '''
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+''' || 4. LOGGING MIDDLEWARE || '''
+def logging_action(method: str, path: str) -> str:
+    if not path.startswith("/items"):
+        return "SYSTEM_PING"
+    
+    if method == "GET":
+        return "LIST_INVENTORY" if path in ("/items/", "/items") else "GET_INVENTORY"
+
+    action_map = {
+        "POST": "ADD_INVENTORY",
+        "PUT": "EDIT_INVENTORY",
+        "DELETE": "DELETE_INVENTORY"
+    }
+    return action_map.get(method, "UNKNOWN_ACTION")
+
+@app.middleware("http")
+async def mongodb_logging(request: Request, call_next):
+    start_time = datetime.now(timezone.utc)
+    response = await call_next(request)
+
+    log_entry = {
+        "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "method": request.method,
+        "endpoint": request.url.path,
+        "action": logging_action(request.method, request.url.path),
+        "user_agent": request.headers.get("user-agent", "unknown"),
+    }
+
+    api_logs_collection = request.app.mongodb["api_logs"]
+    
+    asyncio.create_task(api_logs_collection.insert_one(log_entry))
+
+    return response
+
+''' || 5. POSTGRES CRUD ENDPOINTS || '''
 def get_db():
     db = SessionLocal()
     try:
