@@ -108,7 +108,3 @@ def delete_item(item_id: uuid.UUID, db: Session = Depends(get_db)):
     if db_item is None:
         raise HTTPException(status_code=404, detail="Item not found")
     return {"message": "Item deleted successfully", "item": db_item}
-
-@app.get("/")
-def home():
-    return {"status": "Inventory API is running."}
