@@ -40,12 +40,13 @@ app.add_middleware(
 
 ''' || 4. LOGGING MIDDLEWARE || '''
 def logging_action(method: str, path: str) -> str:
-    if not path.startswith("/items"):
+    normalized_path = path.rstrip("/")
+
+    if not normalized_path.startswith("/items"):
         return "SYSTEM_PING"
     
     if method == "GET":
-        return "LIST_INVENTORY" if path in ("/items/", "/items") else "GET_INVENTORY"
-
+        return "VIEW_INVENTORY" if normalized_path == "/items" else "VIEW_ITEM_DETAIL"
     action_map = {
         "POST": "ADD_INVENTORY",
         "PUT": "EDIT_INVENTORY",
@@ -67,8 +68,7 @@ async def mongodb_logging(request: Request, call_next):
     }
 
     api_logs_collection = request.app.mongodb["api_logs"]
-    
-    asyncio.create_task(api_logs_collection.insert_one(log_entry))
+    await api_logs_collection.insert_one(log_entry)
 
     return response
 
@@ -107,4 +107,4 @@ def delete_item(item_id: uuid.UUID, db: Session = Depends(get_db)):
     db_item = crud.delete_item(db, item_id=item_id)
     if db_item is None:
         raise HTTPException(status_code=404, detail="Item not found")
-    return {"message": "Item deleted successfully", "item": db_item}
+    return {"message": "Item deleted successfully"}
