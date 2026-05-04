@@ -120,7 +120,7 @@ function App() {
 
   return (
     <div style = {{ padding: '20px', fontFamily: 'Poppins, sans-serif', backgroundColor: '#36507A', color: '#E1E8F0', minHeight: '100vh' }}>
-      <h1 style = {{ marginBottom: '50px' }}>Inventory App</h1>
+      <h1 style = {{ color: '#b6cde6', marginBottom: '50px' }}>Inventory App</h1>
 
       {/* Error Message */}
       {error && <p style = {{ color: 'red', marginBottom: '20px' }}>{error}</p>}
@@ -239,7 +239,7 @@ function App() {
           }
         }}>
           <div style = {modalBox} onClick = {(e) => e.stopPropagation()}>
-            <h2>{isEditing ? 'Edit' : 'View'} Item Details</h2>
+            <h2 style = {{ color: '#36507A', padding: '10px 20px' }}>{isEditing ? 'Edit' : 'View'} Item Details</h2>
 
             <label style = {{ marginBottom: '10px', fontWeight: 'bold' }}>Short Name:</label>
             <input disabled = {!isEditing} type = "text" value = {selectedItem.short_name} onChange = {(e) => setSelectedItem({ ...selectedItem, short_name: e.target.value })} />

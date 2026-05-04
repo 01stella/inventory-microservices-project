@@ -16,7 +16,7 @@ models.Base.metadata.create_all(bind=engine)
 ''' || 2. MONGODB SETUP ||'''
 @asynccontextmanager
 async def get_mongo_client(app: FastAPI):
-    MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
+    MONGO_URL = os.environ.get("MONGO_URL", "mongodb://mongodb_logs:27017")
 
     app.mongodb_client = AsyncMongoClient(MONGO_URL)
     app.mongodb = app.mongodb_client["inventory_logs"]
