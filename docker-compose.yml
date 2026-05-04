@@ -1,0 +1,48 @@
+services:
+  # POSTGRESQL DATABASE
+  postgres_db:
+    image: postgres:15
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: inventory
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  
+
+  # MONGODB DATABASE (logs)
+  mongodb_db:
+    image: mongo:6
+    container_name: mongodb_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  # FASTAPI BACKEND
+  backend:
+    build: ./backend
+    container_name: inventory_backend
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://admin:secretpassword@postgres_db:5432/inventory
+      - MONGODB_URL=mongodb://mongodb_db:27017/logs
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres_db
+      - mongodb_db
+
+  # REACT + VITE FRONTEND
+  frontend:
+    build: ./frontend
+    container_name: inventory_frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  mongodb_data:
