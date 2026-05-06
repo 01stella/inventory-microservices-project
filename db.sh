@@ -1,13 +1,25 @@
 #!/bin/bash
 # Script to enter the PostgreSQL & MongoDB databases using Docker
+COMMAND=$(echo "$1" | tr -d '\r' | xargs)
 
-if [ "$1" == "postgres" ]; then
-    echo "Entering PostgreSQL database..."
-    docker exec -it postgres_db psql -U admin -d inventory
-elif [ "$1" == "mongodb" ]; then
-    echo "Entering MongoDB database..."
-    docker exec -it mongodb_logs mongo --host mongodb_logs --port 27017 -u admin -p secretpassword --authenticationDatabase admin
-else
-    echo "Invalid command!"
-    echo "Use: ./db.sh pg (to enter PostgreSQL) or ./db.sh mongo (to enter MongoDB)"
-fi
+
+case "$COMMAND" in
+  "postgres"|"pg")
+    echo "----------------------------------------------------"
+        echo "ENTERING POSTGRESQL (inventory database)"
+        echo "To exit the database: Type '\q' and press Enter"
+        echo "----------------------------------------------------"
+        
+        docker exec -it postgres_db psql -U admin -d inventory -c "\pset pager off" -c "SELECT * FROM items;" -c "\q"
+        docker exec -it postgres_db psql -U admin -d inventory
+        ;;
+
+    "mongo")
+        echo "----------------------------------------------------"
+        echo "ENTERING MONGODB (Logs Database)"
+        echo "To exit: Type 'exit' or press Ctrl+C"
+        echo "----------------------------------------------------"
+        
+        docker exec -it mongodb_db mongosh inventory_logs --shell --eval "console.log('--- RECENT API LOGS ---'); printjson(db.api_logs.find().sort({_id:-1}).limit(5).toArray()); console.log('-----------------------');"
+        ;;
+esac
